@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Full-Screen Chat</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f2f5;
+            margin: 0;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .chat-container {
+            width: 100%;
+            height: 100%;
+            max-width: 600px;
+            border-radius: 10px;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+            background-color: white;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        .chat-header {
+            padding: 15px;
+            background-color: #4267B2;
+            color: white;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .chat-messages {
+            flex: 1;
+            padding: 15px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            scroll-behavior: smooth;
+        }
+
+        .message {
+            padding: 10px;
+            border-radius: 20px;
+            margin-bottom: 10px;
+            max-width: 70%;
+            word-wrap: break-word;
+        }
+
+        .message.sent {
+            background-color: #DCF8C6;
+            align-self: flex-end;
+        }
+
+        .message.received {
+            background-color: #f0f0f0;
+            align-self: flex-start;
+        }
+
+        .chat-input {
+            display: flex;
+            align-items: flex-end;
+            padding: 15px;
+            border-top: 1px solid #ddd;
+            background-color: white;
+        }
+
+        .chat-input textarea {
+            flex: 1;
+            padding: 10px;
+            border-radius: 20px;
+            border: 1px solid #ddd;
+            outline: none;
+            resize: none;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+
+        .chat-input button {
+            margin-left: 10px;
+            padding: 10px 20px;
+            background-color: #4267B2;
+            color: white;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+        }
+
+        .chat-input button:hover {
+            background-color: #365899;
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <div class="chat-header">Facebook- Chat</div>
+        <div class="chat-messages" id="chatMessages">
+            <!-- Messages will appear here -->
+        </div>
+        <div class="chat-input">
+            <textarea id="messageInput" placeholder="Type a message..." oninput="adjustHeight(this)"></textarea>
+            <button onclick="sendMessage()">Send</button>
+        </div>
+    </div>
+
+    <script>
+        function adjustHeight(element) {
+            element.style.height = "auto";
+            element.style.height = element.scrollHeight + "px";
+            scrollMessagesToEnd();
+        }
+
+        function sendMessage() {
+            const messageInput = document.getElementById('messageInput');
+            const chatMessages = document.getElementById('chatMessages');
+
+            if (messageInput.value.trim() !== '') {
+                const messageElement = document.createElement('div');
+                messageElement.classList.add('message', 'sent');
+                messageElement.textContent = messageInput.value;
+                chatMessages.appendChild(messageElement);
+
+                // Scroll to the bottom
+                scrollMessagesToEnd();
+
+                // Reset the input box
+                messageInput.value = '';
+                adjustHeight(messageInput);
+
+                // Optional: Send the message to the server
+                fetch(`/api/chat?prompt=${encodeURIComponent(messageElement.textContent)}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.message) {
+                            const receivedElement = document.createElement('div');
+                            receivedElement.classList.add('message', 'received');
+                            receivedElement.textContent = data.message;
+                            chatMessages.appendChild(receivedElement);
+                            scrollMessagesToEnd();
+                        } else if (data.images) {
+                            data.images.forEach(image => {
+                                const imgElement = document.createElement('img');
+                                imgElement.src = image;
+                                imgElement.style.maxWidth = '100%';
+                                imgElement.style.borderRadius = '10px';
+                                chatMessages.appendChild(imgElement);
+                            });
+                            scrollMessagesToEnd();
+                        }
+                    });
+            }
+        }
+
+        function scrollMessagesToEnd() {
+            const chatMessages = document.getElementById('chatMessages');
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        // Optional: Allow sending message by pressing Enter key
+        document.getElementById('messageInput').addEventListener('keypress', function(event) {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                sendMessage();
+            }
+        });
+
+        // Adjust chat input when keyboard opens on mobile devices
+        window.addEventListener('resize', function() {
+            const messageInput = document.getElementById('messageInput');
+
+            if (document.activeElement === messageInput) {
+                setTimeout(() => {
+                    messageInput.scrollIntoView({ behavior: 'smooth', block: 'end' });
+                }, 300);
+            }
+        });
+    </script>
+</body>
+</html>
